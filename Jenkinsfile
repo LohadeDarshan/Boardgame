@@ -20,6 +20,15 @@ pipeline {
                 }
             }
         }
+        stage('code build and scan') {
+            steps {
+                withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk-11', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
+                    withSonarQubeEnv(credentialsId: 'sonar-token', installationName: 'sonar') {
+                        sh 'mvn package sonar:sonar'   // validate + compile + test + package
+                    }
+                }
+            }
+        }
         stage('code test') {
             steps {
                 withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk-11', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
