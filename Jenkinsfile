@@ -45,7 +45,7 @@ pipeline {
             steps {
                 withMaven(mavenSettingsConfig: '', traceability: true) {
                     withSonarQubeEnv(credentialsId: 'sonar-token', installationName: "${env.SONARQUBE}") {
-                        sh 'mvn clean package sonar:sonar-scanner'
+                        sh 'mvn clean package sonar:sonar'
                     }
                 }
             }
