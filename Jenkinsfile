@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        jdk 'Jdk-11'
+        jdk 'JAVA_HOME'
         maven 'MAVEN_HOME'
     }
 
@@ -41,12 +41,14 @@ pipeline {
                 }
             }
         }
-        stage('Build & SonarQube Analysis') {
+        stage('code build and scan') {
             steps {
-                withMaven(mavenSettingsConfig: '', traceability: true) {
-                    withSonarQubeEnv(credentialsId: 'sonar-token', installationName: "${env.SONARQUBE}") {
-                        sh 'mvn clean package sonar:sonar'
+                withMaven(globalMavenSettingsConfig: '', jdk: 'JAVA_HOME', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
+                    withSonarQubeEnv(credentialsId: 'sonar-token', installationName: 'sonar') {
+                        sh 'mvn clean package org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'// validate + compile + test + package
                     }
                 }
             }
-            }
+        }
+    }
+}
