@@ -1,47 +1,63 @@
 pipeline {
     agent any
+
+    tools {
+        jdk 'Jdk-11'
+        maven 'MAVEN_HOME'
+    }
+
+    environment {
+        SONARQUBE = 'sonar'            // Jenkins me SonarQube server ka name
+        SONAR_TOKEN = credentials('sonar-token') // Jenkins me add kiya hua secret text
+    }
+
     stages {
-        stage('scm checkout') {
+        stage('SCM Checkout') {
             steps {
                 git branch: 'master', url: 'https://github.com/LohadeDarshan/Boardgame.git'
             }
         }
-        stage('code validate') {
+
+        stage('Code Validation') {
             steps {
-                withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk-11', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn validate'   // validate the code
+                withMaven(mavenSettingsConfig: '', traceability: true) {
+                    sh 'mvn validate'
                 }
             }
         }
-        stage('code compile') {
+
+        stage('Compile') {
             steps {
-                withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk-11', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn compile'   // compile
+                withMaven(mavenSettingsConfig: '', traceability: true) {
+                    sh 'mvn compile'
                 }
             }
         }
-        stage('code build and scan') {
+
+        stage('Build & SonarQube Analysis') {
             steps {
-                withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk-11', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-                    withSonarQubeEnv(credentialsId: 'sonar-token', installationName: 'sonar') {
-                        sh 'mvn package sonar:sonar'   // validate + compile + test + package
+                withMaven(mavenSettingsConfig: '', traceability: true) {
+                    withSonarQubeEnv(credentialsId: 'sonar-token', installationName: "${env.SONARQUBE}") {
+                        sh 'mvn clean package sonar:sonar'
                     }
                 }
             }
         }
-        stage('code test') {
+
+        stage('Test') {
             steps {
-                withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk-11', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn test'   // test
+                withMaven(mavenSettingsConfig: '', traceability: true) {
+                    sh 'mvn test'
                 }
             }
         }
-        stage('build the code') {
-      steps {
-        withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk-11', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-          sh 'mvn clean package'
+
+        stage('Final Build') {
+            steps {
+                withMaven(mavenSettingsConfig: '', traceability: true) {
+                    sh 'mvn clean package'
+                }
+            }
         }
-      }
     }
-  }
 }
