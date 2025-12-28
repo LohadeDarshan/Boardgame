@@ -34,16 +34,6 @@ pipeline {
             }
         }
 
-        stage('Build & SonarQube Analysis') {
-            steps {
-                withMaven(mavenSettingsConfig: '', traceability: true) {
-                    withSonarQubeEnv(credentialsId: 'sonar-token', installationName: "${env.SONARQUBE}") {
-                        sh 'mvn clean package sonar:sonar'
-                    }
-                }
-            }
-        }
-
         stage('Test') {
             steps {
                 withMaven(mavenSettingsConfig: '', traceability: true) {
@@ -51,13 +41,11 @@ pipeline {
                 }
             }
         }
-
-        stage('Final Build') {
+        stage('Build & SonarQube Analysis') {
             steps {
                 withMaven(mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn clean package'
+                    withSonarQubeEnv(credentialsId: 'sonar-token', installationName: "${env.SONARQUBE}") {
+                        sh 'mvn clean package sonar:sonar-scanner'
+                    }
                 }
             }
-        }
-    }
-}
