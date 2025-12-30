@@ -72,7 +72,7 @@ pipeline {
                 withMaven(
                     maven: 'maven3', 
                     jdk: 'jdk17',
-                    globalSettingsFileId: 'e65de56d-41d1-4134-8302-263022f559e4',
+                    globalMavenSettingsFilePath:: 'e65de56d-41d1-4134-8302-263022f559e4',
                     traceability: true
                 ) {
                     sh "mvn deploy"
@@ -106,39 +106,4 @@ pipeline {
             }
         }
     } // end of stages
-
-    post {
-        always {
-            script {
-                def jobName = env.JOB_NAME
-                def buildNumber = env.BUILD_NUMBER
-                def pipelineStatus = currentBuild.result ?: 'SUCCESS'
-                def bannerColor = pipelineStatus.toUpperCase() == 'SUCCESS' ? 'green' : 'red'
-
-                def body = """
-<html>
-<body>
-<div style="border: 4px solid ${bannerColor}; padding: 10px;">
-<h2>${jobName} - Build ${buildNumber}</h2>
-<div style="background-color: ${bannerColor}; padding: 10px;">
-<h3 style="color: white;">Pipeline Status: ${pipelineStatus.toUpperCase()}</h3>
-</div>
-<p>Check the <a href="${BUILD_URL}">console output</a>.</p>
-</div>
-</body>
-</html>
-"""
-
-                emailext(
-                    subject: "${jobName} - Build ${buildNumber} - ${pipelineStatus.toUpperCase()}",
-                    body: body,
-                    to: 'oearn4837@gmail.com',
-                    from: 'jenkins@example.com',
-                    replyTo: 'jenkins@example.com',
-                    mimeType: 'text/html',
-                    attachmentsPattern: 'trivy-image-report.html'
-                )
-            }
-        }
-    }
 }
