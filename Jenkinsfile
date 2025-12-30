@@ -48,12 +48,13 @@ pipeline {
                     }
                 }
             }
-            stage('Build') {
+        }
+        stage('Build') {
                 steps {
                     sh "mvn package"
                 }
             }
-            stage('Publish To Nexus') {
+        stage('Publish To Nexus') {
                 steps {
                     withMaven(
                         globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17',
@@ -63,7 +64,7 @@ pipeline {
                     }
                 }
             }
-            stage('Build & Tag Docker Image') {
+        stage('Build & Tag Docker Image') {
                 steps {
                     script {
                         withDockerRegistry(credentialsId: 'myserverd', toolName: 'docker') {
@@ -72,22 +73,22 @@ pipeline {
                     }
                 }
             }
-            stage('Docker Image Scan') {
+        stage('Docker Image Scan') {
                 steps {
                     sh "trivy image --format table -o trivy-image-report.html myserverd/boardshack:latest"
                 }
             }
-            stage('Push Docker Image') {
+        stage('Push Docker Image') {
                 steps {
                     script {
-                        withDockerRegistry(credentialsId: 'myserver', toolName: 'docker') {
+                        withDockerRegistry(credentialsId: 'myserverd', toolName: 'docker') {
                             sh "docker push myserverd/boardshack:latest"
                         }
                     }
                 }
             }
         }
-        // <-- Add the post block here
+    // <-- Add the post block here
         post {
             always {
                 script {
@@ -122,4 +123,3 @@ pipeline {
             }
         }
     }
-}
