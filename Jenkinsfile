@@ -42,62 +42,61 @@ pipeline {
             steps {
                 script {
                     if (env.SKIP_QG != "true") {
-                waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
-            } else {
-                echo "Skipping Quality Gate stage"
+                        waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                    } else {
+                        echo "Skipping Quality Gate stage"
+                    }
                 }
             }
-        }
-        stage('Build') {
-            steps {
-                sh "mvn package"
-            }
-        }
-        stage('Publish To Nexus') {
-            steps {
-                withMaven(
-                    globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17',
-                    maven: 'maven3', mavenSettingsConfig: '', traceability: true
-                ) {
-                    sh "mvn deploy"
+            stage('Build') {
+                steps {
+                    sh "mvn package"
                 }
             }
-        }
-        stage('Build & Tag Docker Image') {
-            steps {
-                script {
-                    withDockerRegistry(credentialsId: 'myserverd', toolName: 'docker') {
-                        sh "docker build -t myserverd/boardshack:latest ."
+            stage('Publish To Nexus') {
+                steps {
+                    withMaven(
+                        globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17',
+                        maven: 'maven3', mavenSettingsConfig: '', traceability: true
+                    ) {
+                        sh "mvn deploy"
+                    }
+                }
+            }
+            stage('Build & Tag Docker Image') {
+                steps {
+                    script {
+                        withDockerRegistry(credentialsId: 'myserverd', toolName: 'docker') {
+                            sh "docker build -t myserverd/boardshack:latest ."
+                        }
+                    }
+                }
+            }
+            stage('Docker Image Scan') {
+                steps {
+                    sh "trivy image --format table -o trivy-image-report.html myserverd/boardshack:latest"
+                }
+            }
+            stage('Push Docker Image') {
+                steps {
+                    script {
+                        withDockerRegistry(credentialsId: 'myserver', toolName: 'docker') {
+                            sh "docker push myserverd/boardshack:latest"
+                        }
                     }
                 }
             }
         }
-        stage('Docker Image Scan') {
-            steps {
-                sh "trivy image --format table -o trivy-image-report.html myserverd/boardshack:latest"
-            }
-        }
-        stage('Push Docker Image') {
-            steps {
+        // <-- Add the post block here
+        post {
+            always {
                 script {
-                    withDockerRegistry(credentialsId: 'myserver', toolName: 'docker') {
-                        sh "docker push myserverd/boardshack:latest"
-                    }
-                }
-            }
-        }
-    }
-
-    // <-- Add the post block here
-    post {
-        always {
-            script {
-                def jobName = env.JOB_NAME
-                def buildNumber = env.BUILD_NUMBER
-                def pipelineStatus = currentBuild.result ?: 'SUCCESS'
-                def bannerColor = pipelineStatus.toUpperCase() == 'SUCCESS' ? 'green' : 'red'
-
-                def body = """
+                    def jobName = env.JOB_NAME
+                    def buildNumber = env.BUILD_NUMBER
+                    def pipelineStatus = currentBuild.result ?: 'SUCCESS'
+                    def bannerColor = pipelineStatus.toUpperCase() == 'SUCCESS' 
+                        ? 'green': 'red'
+                    def body = """
 <html>
 <body>
 <div style="border: 4px solid ${bannerColor}; padding: 10px;">
@@ -110,16 +109,16 @@ pipeline {
 </body>
 </html>
 """
-
-                emailext(
-                    subject: "${jobName} - Build ${buildNumber} - ${pipelineStatus.toUpperCase()}",
-                    body: body,
-                    to: 'oearn4837@gmail.com',
-                    from: 'jenkins@example.com',
-                    replyTo: 'jenkins@example.com',
-                    mimeType: 'text/html',
-                    attachmentsPattern: 'trivy-image-report.html'
-                )
+                    emailext(
+                        subject: "${jobName} - Build ${buildNumber} - ${pipelineStatus.toUpperCase()}",
+                        body: body,
+                        to: 'oearn4837@gmail.com',
+                        from: 'jenkins@example.com',
+                        replyTo: 'jenkins@example.com',
+                        mimeType: 'text/html',
+                        attachmentsPattern: 'trivy-image-report.html'
+                    )
+                }
             }
         }
     }
