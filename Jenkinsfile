@@ -41,7 +41,10 @@ pipeline {
         stage('Quality Gate') {
             steps {
                 script {
-                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                    if (env.SKIP_QG != "true") {
+                waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+            } else {
+                echo "Skipping Quality Gate stage"
                 }
             }
         }
