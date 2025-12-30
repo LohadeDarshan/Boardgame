@@ -72,7 +72,7 @@ pipeline {
                 withMaven(
                     maven: 'maven3', 
                     jdk: 'jdk17',
-                    globalMavenSettingsFilePath:: 'e65de56d-41d1-4134-8302-263022f559e4',
+                    globalMavenSettingsFilePath: 'e65de56d-41d1-4134-8302-263022f559e4',
                     traceability: true
                 ) {
                     sh "mvn deploy"
