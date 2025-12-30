@@ -1,51 +1,84 @@
 pipeline {
     agent any
-
     tools {
-        jdk 'JAVA_HOME'
-        maven 'MAVEN_HOME'
+        jdk 'jdk17'
+        maven 'maven3'
     }
-
     environment {
-        SONARQUBE = 'sonar'            // Jenkins me SonarQube server ka name
-        SONAR_TOKEN = credentials('sonar-token') // Jenkins me add kiya hua secret text
+        SCANNER_HOME = tool 'sonar-scanner'
     }
-
     stages {
-        stage('SCM Checkout') {
+        stage('Git Checkout') {
             steps {
-                git branch: 'master', url: 'https://github.com/LohadeDarshan/Boardgame.git'
+                git branch: 'main', url:
+                'https://github.com/LohadeDarshan/Boardgame.git'
             }
         }
-
-        stage('Code Validation') {
-            steps {
-                withMaven(mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn validate'
-                }
-            }
-        }
-
         stage('Compile') {
             steps {
-                withMaven(mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn compile'
-                }
+                sh "mvn compile"
             }
         }
-
         stage('Test') {
             steps {
-                withMaven(mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn test'
+                sh "mvn test"
+            }
+        }
+        stage('File System Scan') {
+            steps {
+                sh "trivy fs --format table -o trivy-fs-report.html ."
+            }
+        }
+        stage('SonarQube Analsyis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    sh ''' $SCANNER_HOME/bin/sonar-scanner - Dsonar.projectName=BoardGame -Dsonar.projectKey=BoardGame \
+-Dsonar.java.binaries=. '''
                 }
             }
         }
-        stage('code build and scan') {
+        stage('Quality Gate') {
             steps {
-                withMaven(globalMavenSettingsConfig: '', jdk: 'JAVA_HOME', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-                    withSonarQubeEnv(credentialsId: 'sonar-token', installationName: 'sonar') {
-                        sh 'mvn clean package org.sonarsource.scanner.maven:sonar-maven-plugin:sonar'// validate + compile + test + package
+                script {
+                    waitForQualityGate abortPipeline: false, credentialsId: 'sonar-token'
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                sh "mvn package"
+            }
+        }
+        stage('Publish To Nexus') {
+            steps {
+                withMaven(
+                    globalMavenSettingsConfig: 'global-settings', jdk: 'jdk17',
+                    maven: 'maven3', mavenSettingsConfig: '', traceability: true
+                ) {
+                    sh "mvn deploy"
+                }
+            }
+        }
+        stage('Build & Tag Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'myserverd', toolName: 'docker') {
+                        sh "docker build -t myserverd/boardshack:latest ."
+                    }
+                }
+            }
+        }
+        stage('Docker Image Scan') {
+            steps {
+                sh """trivy image --format table -o trivy-image-report.html \
+myserverd/boardshack:latest"""
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'myserver', toolName: 'docker') {
+                        sh "docker push myserverd/boardshack:latest"
                     }
                 }
             }
