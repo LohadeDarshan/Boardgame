@@ -1,29 +1,38 @@
 pipeline {
     agent any
+
+    tools {
+        jdk 'Jdk17'       // Jenkins me configured Java 17 tool
+        maven 'Maven3'    // Jenkins me configured Maven tool
+    }
+
     stages {
-        stage('scm checkout') {
+        stage('SCM Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/LohadeDarshan/Boardgame.git'
             }
         }
-        stage('code validate') {
+
+        stage('Code Validate') {
             steps {
-                withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk17', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn validate'   // validate the code
+                withMaven(jdk: 'Jdk17', maven: 'Maven3', traceability: true) {
+                    sh 'mvn validate'
                 }
             }
         }
-        stage('code compile') {
+
+        stage('Code Compile') {
             steps {
-                withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk17', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn compile'   // compile
+                withMaven(jdk: 'Jdk17', maven: 'Maven3', traceability: true) {
+                    sh 'mvn compile'
                 }
             }
         }
-        stage('code test') {
+
+        stage('Code Test') {
             steps {
-                withMaven(globalMavenSettingsConfig: '', jdk: 'Jdk17', maven: 'MAVEN_HOME', mavenSettingsConfig: '', traceability: true) {
-                    sh 'mvn test'   // test
+                withMaven(jdk: 'Jdk17', maven: 'Maven3', traceability: true) {
+                    sh 'mvn test'
                 }
             }
         }
